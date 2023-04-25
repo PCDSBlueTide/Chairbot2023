@@ -7,6 +7,17 @@ package frc.robot;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj.GenericHID;
+import edu.wpi.first.wpilibj.PS4Controller;
+import edu.wpi.first.wpilibj.drive.DifferentialDrive;
+import edu.wpi.first.wpilibj.MotorSafety;
+import edu.wpi.first.wpilibj.motorcontrol.PWMMotorController;
+import edu.wpi.first.wpilibj.motorcontrol.Talon;
+import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.math.filter.SlewRateLimiter;
+
+import com.ctre.phoenix.motorcontrol.TalonSRXControlMode;
+import com.ctre.phoenix.motorcontrol.can.TalonSRX;
 
 /**
  * The VM is configured to automatically run this class, and to call the functions corresponding to
@@ -15,6 +26,33 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
  * project.
  */
 public class Robot extends TimedRobot {
+
+  Talon motorFrontRight = new Talon(1);
+  Talon motorFrontLeft = new Talon(2);
+  Talon motorRearRight = new Talon(3);
+  Talon motorRearLeft = new Talon(4);
+
+  DifferentialDrive frontDrive = new DifferentialDrive(motorFrontLeft, motorFrontRight);
+  DifferentialDrive rearDrive = new DifferentialDrive(motorRearLeft, motorRearRight);
+
+  PS4Controller controller = new PS4Controller(0);
+
+  boolean firstFrame;
+
+  double prevRightJoyX;
+  double prevRightJoyY;
+
+  SlewRateLimiter limitedMovementAcc = new SlewRateLimiter(1);
+  SlewRateLimiter limitedTurnAcc = new SlewRateLimiter(2);
+
+  double maxMotorAcc = 0.0001; //set max motor acceleration of drivetrain
+  double maxTurnAcc = 0.0001; //set max turning acceleration of drivetrain
+  double maxMotorSpeed = 1;
+  double maxTurnSpeed = 1;
+
+  double previousTime;
+  double deltaTime;
+
   private static final String kDefaultAuto = "Default";
   private static final String kCustomAuto = "My Auto";
   private String m_autoSelected;
@@ -26,6 +64,8 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void robotInit() {
+    previousTime = Timer.getFPGATimestamp();
+
     m_chooser.setDefaultOption("Default Auto", kDefaultAuto);
     m_chooser.addOption("My Auto", kCustomAuto);
     SmartDashboard.putData("Auto choices", m_chooser);
@@ -39,7 +79,12 @@ public class Robot extends TimedRobot {
    * SmartDashboard integrated updating.
    */
   @Override
-  public void robotPeriodic() {}
+  public void robotPeriodic() 
+  {
+    double currentTime = Timer.getFPGATimestamp();
+    deltaTime = currentTime - previousTime;
+    previousTime = currentTime;
+  }
 
   /**
    * This autonomous (along with the chooser code above) shows how to select between different
@@ -74,11 +119,22 @@ public class Robot extends TimedRobot {
 
   /** This function is called once when teleop is enabled. */
   @Override
-  public void teleopInit() {}
+  public void teleopInit() 
+  {
+    prevRightJoyX = controller.getRightX();
+    prevRightJoyY = controller.getRightY();
+  }
 
   /** This function is called periodically during operator control. */
   @Override
-  public void teleopPeriodic() {}
+  public void teleopPeriodic() 
+  {
+    double rightJoyX = controller.getRightX();
+    double rightJoyY = controller.getRightY();
+
+    frontDrive.arcadeDrive(limitedTurnAcc.calculate(-rightJoyX), limitedMovementAcc.calculate(-rightJoyY));
+    frontDrive.arcadeDrive(limitedTurnAcc.calculate(-rightJoyX), limitedMovementAcc.calculate(-rightJoyY));
+  }
 
   /** This function is called once when the robot is disabled. */
   @Override
