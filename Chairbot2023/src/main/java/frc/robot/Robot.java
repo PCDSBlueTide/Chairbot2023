@@ -27,11 +27,11 @@ import com.ctre.phoenix.motorcontrol.can.TalonSRX;
  */
 public class Robot extends TimedRobot {
 
-  Talon motorFrontRight = new Talon(1);
+  Talon motorFrontRight = new Talon(0);
   Talon motorFrontLeft = new Talon(2);
-  Talon motorRearRight = new Talon(3);
-  Talon motorRearLeft = new Talon(4);
-
+  Talon motorRearRight = new Talon(1);
+  Talon motorRearLeft = new Talon(3);
+                                                                                                                        
   DifferentialDrive frontDrive = new DifferentialDrive(motorFrontLeft, motorFrontRight);
   DifferentialDrive rearDrive = new DifferentialDrive(motorRearLeft, motorRearRight);
 
@@ -129,11 +129,28 @@ public class Robot extends TimedRobot {
   @Override
   public void teleopPeriodic() 
   {
-    double rightJoyX = controller.getRightX();
-    double rightJoyY = controller.getRightY();
+    double rightJoyX = limitedTurnAcc.calculate(controller.getRightX());
+    double rightJoyY = limitedMovementAcc.calculate(controller.getRightY());
 
-    frontDrive.arcadeDrive(limitedTurnAcc.calculate(-rightJoyX), limitedMovementAcc.calculate(-rightJoyY));
-    frontDrive.arcadeDrive(limitedTurnAcc.calculate(-rightJoyX), limitedMovementAcc.calculate(-rightJoyY));
+    if(rightJoyX < 0.25 && rightJoyX >= 0)
+    {
+      rightJoyX = 0.25;
+    }
+    if(rightJoyX <= 0 && rightJoyX > -0.25)
+    {
+      rightJoyX = -0.25;
+    }
+    if(rightJoyY < 0.25 && rightJoyY >= 0)
+    {
+      rightJoyY = 0.25;
+    }
+    if(rightJoyY <= 0 && rightJoyY > -0.25)
+    {
+      rightJoyY = -0.25;
+    }
+
+    frontDrive.arcadeDrive(rightJoyX, -rightJoyY);
+    rearDrive.arcadeDrive(rightJoyX, -rightJoyY);
   }
 
   /** This function is called once when the robot is disabled. */
