@@ -16,6 +16,8 @@ import edu.wpi.first.wpilibj.motorcontrol.Talon;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.math.filter.SlewRateLimiter;
 
+import javax.sound.midi.ControllerEventListener;
+
 import com.ctre.phoenix.motorcontrol.TalonSRXControlMode;
 import com.ctre.phoenix.motorcontrol.can.TalonSRX;
 
@@ -27,11 +29,11 @@ import com.ctre.phoenix.motorcontrol.can.TalonSRX;
  */
 public class Robot extends TimedRobot {
 
-  Talon motorFrontRight = new Talon(0);
+  Talon motorFrontRight = new Talon(1);
   Talon motorFrontLeft = new Talon(2);
-  Talon motorRearRight = new Talon(1);
-  Talon motorRearLeft = new Talon(3);
-                                                                                                                        
+  Talon motorRearRight = new Talon(3);
+  Talon motorRearLeft = new Talon(4);
+
   DifferentialDrive frontDrive = new DifferentialDrive(motorFrontLeft, motorFrontRight);
   DifferentialDrive rearDrive = new DifferentialDrive(motorRearLeft, motorRearRight);
 
@@ -47,8 +49,10 @@ public class Robot extends TimedRobot {
 
   double maxMotorAcc = 0.0001; //set max motor acceleration of drivetrain
   double maxTurnAcc = 0.0001; //set max turning acceleration of drivetrain
-  double maxMotorSpeed = 1;
-  double maxTurnSpeed = 1;
+  double maxMotorSpeed = 0.7;
+  double maxTurnSpeed = 0.7;
+
+  boolean isDisabled;
 
   double previousTime;
   double deltaTime;
@@ -69,6 +73,8 @@ public class Robot extends TimedRobot {
     m_chooser.setDefaultOption("Default Auto", kDefaultAuto);
     m_chooser.addOption("My Auto", kCustomAuto);
     SmartDashboard.putData("Auto choices", m_chooser);
+
+
   }
 
   /**
@@ -129,28 +135,23 @@ public class Robot extends TimedRobot {
   @Override
   public void teleopPeriodic() 
   {
-    double rightJoyX = limitedTurnAcc.calculate(controller.getRightX());
-    double rightJoyY = limitedMovementAcc.calculate(controller.getRightY());
+    double rightJoyX = maxMotorSpeed * controller.getRightX();
+    double rightJoyY = maxTurnSpeed * controller.getRightY();
 
-    if(rightJoyX < 0.25 && rightJoyX >= 0)
-    {
-      rightJoyX = 0.25;
-    }
-    if(rightJoyX <= 0 && rightJoyX > -0.25)
-    {
-      rightJoyX = -0.25;
-    }
-    if(rightJoyY < 0.25 && rightJoyY >= 0)
-    {
-      rightJoyY = 0.25;
-    }
-    if(rightJoyY <= 0 && rightJoyY > -0.25)
-    {
-      rightJoyY = -0.25;
-    }
+    isDisabled = controller.getCircleButton();
 
-    frontDrive.arcadeDrive(rightJoyX, -rightJoyY);
-    rearDrive.arcadeDrive(rightJoyX, -rightJoyY);
+    if(isDisabled)
+    {
+      motorFrontLeft.stopMotor();
+      motorFrontRight.stopMotor();
+      motorRearLeft.stopMotor();
+      motorRearRight.stopMotor();
+    }
+    else
+    {
+      frontDrive.arcadeDrive(limitedTurnAcc.calculate(-rightJoyX), limitedMovementAcc.calculate(-rightJoyY));
+      frontDrive.arcadeDrive(limitedTurnAcc.calculate(-rightJoyX), limitedMovementAcc.calculate(-rightJoyY));
+    }
   }
 
   /** This function is called once when the robot is disabled. */
